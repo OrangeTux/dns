@@ -1,3 +1,5 @@
+use dns::DecodeError;
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Header {
     /// An identifier used to match query with reply.
@@ -22,24 +24,39 @@ pub struct Header {
 }
 
 impl TryFrom<&mut std::slice::Iter<'_, u8>> for Header {
-    type Error = String;
+    type Error = DecodeError;
 
     fn try_from(value: &mut std::slice::Iter<u8>) -> Result<Self, Self::Error> {
-        let id = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
-        let byte = *value.next().unwrap();
+        let id = u16::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ]);
+        let byte = *value.next().ok_or(DecodeError::NotEnoughBytes)?;
         let qr = Type::try_from(byte & 0b1000_0000)?;
         let opcode = OpCode::try_from(byte & 0b0111_1000)?;
-        let aa = byte  & 0b1000_0000;
-        let tc = byte  & 0b0000_0100;
-        let rd = byte  & 0b0000_0010;
-        let ra = byte  & 0b0000_0001;
-        let byte = *value.next().unwrap();
+        let aa = byte & 0b1000_0000;
+        let tc = byte & 0b0000_0100;
+        let rd = byte & 0b0000_0010;
+        let ra = byte & 0b0000_0001;
+        let byte = *value.next().ok_or(DecodeError::NotEnoughBytes)?;
         let z = byte & 0b1110_0000;
         let rcode = ResponseCode::try_from(byte & 0b0001_1111)?;
-        let qd_count = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
-        let an_count = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
-        let ns_count = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
-        let ar_count = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
+        let qd_count = u16::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ]);
+        let an_count = u16::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ]);
+        let ns_count = u16::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ]);
+        let ar_count = u16::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ]);
 
         let header = Header {
             id,
@@ -69,13 +86,16 @@ pub enum OpCode {
 }
 
 impl TryFrom<u8> for OpCode {
-    type Error = String;
+    type Error = DecodeError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::Query),
             1 => Ok(Self::IQuery),
             2 => Ok(Self::Status),
-            _ => Err(String::from("Error")),
+            _ => Err(DecodeError::IllegalValue(format!(
+                "failed to parse value as OpCode: {} is not a valid value",
+                value
+            ))),
         }
     }
 }
@@ -87,12 +107,15 @@ pub enum Type {
 }
 
 impl TryFrom<u8> for Type {
-    type Error = String;
+    type Error = DecodeError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::Query),
             1 => Ok(Self::Reply),
-            _ => Err(String::from("Error")),
+            _ => Err(DecodeError::IllegalValue(format!(
+                "failed to parse value as Type : {} is not a valid value",
+                value
+            ))),
         }
     }
 }
@@ -108,7 +131,7 @@ pub enum ResponseCode {
 }
 
 impl TryFrom<u8> for ResponseCode {
-    type Error = String;
+    type Error = DecodeError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::NoError),
@@ -117,7 +140,10 @@ impl TryFrom<u8> for ResponseCode {
             3 => Ok(Self::NameError),
             4 => Ok(Self::NotImplemented),
             5 => Ok(Self::Refused),
-            _ => Err(String::from("Error")),
+            _ => Err(DecodeError::IllegalValue(format!(
+                "failed to parse value as ResponseCode: {} is not a valid value",
+                value
+            ))),
         }
     }
 }
@@ -131,7 +157,8 @@ mod test {
         let mut query = [
             144, 200, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 10, 100, 117, 99, 107, 100, 117, 99, 107, 103,
             111, 3, 99, 111, 109, 0, 0, 1, 0, 1,
-        ].iter();
+        ]
+        .iter();
         let header = Header::try_from(&mut query).unwrap();
 
         assert_eq!(
@@ -159,7 +186,7 @@ mod test {
             crate::sections::Question {
                 qname: "duckduckgo.com".to_string(),
                 qtype: crate::sections::QType::A,
-                qclass : crate::sections::QClass::IN,
+                qclass: crate::sections::QClass::IN,
             }
         );
     }
