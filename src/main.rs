@@ -1,5 +1,6 @@
 mod header;
 mod sections;
+
 fn main() -> std::io::Result<()> {
     {
         let query = [
@@ -7,7 +8,7 @@ fn main() -> std::io::Result<()> {
             111, 3, 99, 111, 109, 0, 0, 1, 0, 1,
         ];
         //println!("{:?}", header_as_bytes[0..size]);
-        let header = crate::header::Header::try_from(&query[0..12]).unwrap();
+        let header = crate::header::Header::try_from(&mut query.iter()).unwrap();
         dbg!(header);
 
         // Redeclare `buf` as slice of the received data and send reverse data back to origin.

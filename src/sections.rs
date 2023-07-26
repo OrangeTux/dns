@@ -10,7 +10,6 @@ impl TryFrom<&mut std::slice::Iter<'_, u8>> for Question {
     type Error = String;
 
     fn try_from(value: &mut std::slice::Iter<u8>) -> Result<Self, Self::Error> {
-        let mut position: usize = 0;
         let mut qname: String = String::new();
         loop {
             let length_of_label: usize = (*value.next().unwrap()).into();
@@ -115,18 +114,5 @@ impl TryFrom<u16> for QClass {
             255 => Self::Any,
             _ => return Err("Failed to parse QClass".to_string()),
         })
-    }
-}
-#[cfg(test)]
-mod test {
-    use super::*;
-    #[test]
-    fn deserialize() {
-        let query = [
-            144, 200, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 10, 100, 117, 99, 107, 100, 117, 99, 107, 103,
-            111, 3, 99, 111, 109, 0, 0, 1, 0, 1,
-        ];
-        let question = Question::try_from(&mut query[12..].iter()).unwrap();
-        dbg!(question);
     }
 }

@@ -21,28 +21,25 @@ pub struct Header {
     pub ar_count: u16,
 }
 
-impl TryFrom<&[u8]> for Header {
+impl TryFrom<&mut std::slice::Iter<'_, u8>> for Header {
     type Error = String;
 
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != 12 {
-            return Err("Lenght invalid".to_string());
-        }
-        println!("{:?}", value);
-
-        let id = u16::from_be_bytes([value[0], value[1]]);
-        let qr = Type::try_from(value[2] & 0b1000_0000)?;
-        let opcode = OpCode::try_from(value[2] & 0b0111_1000)?;
-        let aa = value[2] & 0b1000_0000;
-        let tc = value[2] & 0b0000_0100;
-        let rd = value[2] & 0b0000_0010;
-        let ra = value[2] & 0b0000_0001;
-        let z = value[3] & 0b1110_0000;
-        let rcode = ResponseCode::try_from(value[3] & 0b0001_1111)?;
-        let qd_count = u16::from_be_bytes([value[4], value[5]]);
-        let an_count = u16::from_be_bytes([value[6], value[7]]);
-        let ns_count = u16::from_be_bytes([value[8], value[9]]);
-        let ar_count = u16::from_be_bytes([value[10], value[11]]);
+    fn try_from(value: &mut std::slice::Iter<u8>) -> Result<Self, Self::Error> {
+        let id = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
+        let byte = *value.next().unwrap();
+        let qr = Type::try_from(byte & 0b1000_0000)?;
+        let opcode = OpCode::try_from(byte & 0b0111_1000)?;
+        let aa = byte  & 0b1000_0000;
+        let tc = byte  & 0b0000_0100;
+        let rd = byte  & 0b0000_0010;
+        let ra = byte  & 0b0000_0001;
+        let byte = *value.next().unwrap();
+        let z = byte & 0b1110_0000;
+        let rcode = ResponseCode::try_from(byte & 0b0001_1111)?;
+        let qd_count = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
+        let an_count = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
+        let ns_count = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
+        let ar_count = u16::from_be_bytes([*value.next().unwrap(), *value.next().unwrap()]);
 
         let header = Header {
             id,
@@ -131,11 +128,11 @@ mod test {
 
     #[test]
     fn deserialize() {
-        let query = [
+        let mut query = [
             144, 200, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 10, 100, 117, 99, 107, 100, 117, 99, 107, 103,
             111, 3, 99, 111, 109, 0, 0, 1, 0, 1,
-        ];
-        let header = Header::try_from(&query[0..12]).unwrap();
+        ].iter();
+        let header = Header::try_from(&mut query).unwrap();
 
         assert_eq!(
             header,
@@ -154,6 +151,16 @@ mod test {
                 ns_count: 0,
                 ar_count: 0,
             }
-        )
+        );
+
+        let question = crate::sections::Question::try_from(&mut query).unwrap();
+        assert_eq!(
+            question,
+            crate::sections::Question {
+                qname: "duckduckgo.com".to_string(),
+                qtype: crate::sections::QType::A,
+                qclass : crate::sections::QClass::IN,
+            }
+        );
     }
 }
