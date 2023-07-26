@@ -1,5 +1,5 @@
 /// See 4.1.2 of rfc
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Question {
     pub qname: String,
     pub qtype: QType,
@@ -41,7 +41,7 @@ impl TryFrom<&mut std::slice::Iter<'_, u8>> for Question {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum QType {
     A,
     NS,
@@ -93,7 +93,7 @@ impl TryFrom<u16> for QType {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum QClass {
     IN,
     CS,

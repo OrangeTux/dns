@@ -1,4 +1,4 @@
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Header {
     /// An identifier used to match query with reply.
     pub id: u16,
@@ -61,7 +61,7 @@ impl TryFrom<&mut std::slice::Iter<'_, u8>> for Header {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum OpCode {
     Query,
     IQuery,
@@ -80,7 +80,7 @@ impl TryFrom<u8> for OpCode {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Type {
     Query,
     Reply,
@@ -97,7 +97,7 @@ impl TryFrom<u8> for Type {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ResponseCode {
     NoError,
     FormatError,
