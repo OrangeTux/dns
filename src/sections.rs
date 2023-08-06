@@ -1,4 +1,4 @@
-use dns::DecodeError;
+use crate::DecodeError;
 
 /// See 4.1.2 of rfc
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -49,6 +49,26 @@ impl TryFrom<&mut std::slice::Iter<'_, u8>> for Question {
             .try_into()
             .unwrap(),
         })
+    }
+}
+
+impl Question {
+    pub fn into_bytes(self) -> Vec<u8> {
+        let mut name: Vec<u8> = self
+            .qname
+            .split(".")
+            .map(|part| {
+                let mut x = part.to_owned().into_bytes();
+                x.insert(0, x.len().try_into().unwrap());
+                x
+            })
+            .flatten()
+            .collect();
+        name.push(0);
+
+        name.append(&mut Into::<u16>::into(self.qtype).to_be_bytes().to_vec());
+        name.append(&mut Into::<u16>::into(self.qclass).to_be_bytes().to_vec());
+        name
     }
 }
 
@@ -109,6 +129,32 @@ impl TryFrom<u16> for QType {
     }
 }
 
+impl Into<u16> for QType {
+    fn into(self) -> u16 {
+        match self {
+            Self::A => 1,
+            Self::NS => 2,
+            Self::MD => 3,
+            Self::MF => 4,
+            Self::CNAME => 5,
+            Self::SOA => 6,
+            Self::MB => 7,
+            Self::MG => 8,
+            Self::MR => 9,
+            Self::Null => 10,
+            Self::WKS => 11,
+            Self::PTR => 12,
+            Self::HINFO => 13,
+            Self::MINFO => 14,
+            Self::MX => 15,
+            Self::TXT => 16,
+            Self::AXFR => 252,
+            Self::MAILB => 253,
+            Self::MAILA => 254,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum QClass {
     IN,
@@ -135,5 +181,17 @@ impl TryFrom<u16> for QClass {
                 )))
             }
         })
+    }
+}
+
+impl Into<u16> for QClass {
+    fn into(self) -> u16 {
+        match self {
+            Self::IN => 1,
+            Self::CS => 2,
+            Self::CH => 3,
+            Self::HS => 4,
+            Self::Any => 255,
+        }
     }
 }

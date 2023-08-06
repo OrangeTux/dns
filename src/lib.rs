@@ -1,3 +1,18 @@
+//! A DNS resolver according to [`RFC 1035`].
+//!
+//! This project can be used both as a library and as a binary.
+//! The library exposes relevant types to build your own DNS server or DNS client.
+//! The project also contains a DNS resolver as a binary.
+//!
+//! [`RFC 1035`]: https://datatracker.ietf.org/doc/html/rfc1035
+#![warn(missing_docs)]
+pub mod header;
+pub mod message;
+pub mod resource_record;
+pub mod sections;
+
+pub use message::Message;
+
 use std::error::Error;
 use std::fmt::Display;
 
