@@ -87,17 +87,17 @@ impl Header {
         header.append(&mut self.id.to_be_bytes().to_vec());
 
         let mut byte: u8 = 0;
-        byte = byte + (Into::<u8>::into(self.qr) << 7);
-        byte = byte + (Into::<u8>::into(self.opcode) << 3);
-        byte = byte + (Into::<u8>::into(self.aa) << 2);
-        byte = byte + (Into::<u8>::into(self.tc) << 1);
-        byte = byte + (Into::<u8>::into(self.rd) << 0);
+        byte += Into::<u8>::into(self.qr) << 7;
+        byte += Into::<u8>::into(self.opcode) << 3;
+        byte += Into::<u8>::into(self.aa) << 2;
+        byte += Into::<u8>::into(self.tc) << 1;
+        byte += Into::<u8>::into(self.rd);
         header.push(byte);
 
         let mut byte: u8 = 0;
-        byte = byte + (Into::<u8>::into(self.ra) << 7);
-        byte = byte + (Into::<u8>::into(self.z) << 4);
-        byte = byte + (Into::<u8>::into(self.rcode) << 0);
+        byte += Into::<u8>::into(self.ra) << 7;
+        byte += Into::<u8>::into(self.z) << 4;
+        byte += Into::<u8>::into(self.rcode);
         header.push(byte);
 
         header.append(&mut self.qd_count.to_be_bytes().to_vec());
@@ -105,7 +105,7 @@ impl Header {
         header.append(&mut self.ns_count.to_be_bytes().to_vec());
         header.append(&mut self.ar_count.to_be_bytes().to_vec());
 
-        return header;
+        header
     }
 }
 
@@ -131,12 +131,12 @@ impl TryFrom<u8> for OpCode {
     }
 }
 
-impl Into<u8> for OpCode {
-    fn into(self) -> u8 {
-        match self {
-            Self::Query => 0,
-            Self::IQuery => 1,
-            Self::Status => 2,
+impl From<OpCode> for u8 {
+    fn from(val: OpCode) -> Self {
+        match val {
+            OpCode::Query => 0,
+            OpCode::IQuery => 1,
+            OpCode::Status => 2,
         }
     }
 }
@@ -160,11 +160,11 @@ impl TryFrom<u8> for Type {
     }
 }
 
-impl Into<u8> for Type {
-    fn into(self) -> u8 {
-        match self {
-            Self::Query => 0,
-            Self::Reply => 1,
+impl From<Type> for u8 {
+    fn from(val: Type) -> Self {
+        match val {
+            Type::Query => 0,
+            Type::Reply => 1,
         }
     }
 }
@@ -197,15 +197,15 @@ impl TryFrom<u8> for ResponseCode {
     }
 }
 
-impl Into<u8> for ResponseCode {
-    fn into(self) -> u8 {
-        match self {
-            Self::NoError => 0,
-            Self::FormatError => 1,
-            Self::ServerFailure => 2,
-            Self::NameError => 4,
-            Self::NotImplemented => 5,
-            Self::Refused => 6,
+impl From<ResponseCode> for u8 {
+    fn from(val: ResponseCode) -> Self {
+        match val {
+            ResponseCode::NoError => 0,
+            ResponseCode::FormatError => 1,
+            ResponseCode::ServerFailure => 2,
+            ResponseCode::NameError => 4,
+            ResponseCode::NotImplemented => 5,
+            ResponseCode::Refused => 6,
         }
     }
 }

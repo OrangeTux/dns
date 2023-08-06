@@ -56,13 +56,12 @@ impl Question {
     pub fn into_bytes(self) -> Vec<u8> {
         let mut name: Vec<u8> = self
             .qname
-            .split(".")
-            .map(|part| {
+            .split('.')
+            .flat_map(|part| {
                 let mut x = part.to_owned().into_bytes();
                 x.insert(0, x.len().try_into().unwrap());
                 x
             })
-            .flatten()
             .collect();
         name.push(0);
 
@@ -129,28 +128,28 @@ impl TryFrom<u16> for QType {
     }
 }
 
-impl Into<u16> for QType {
-    fn into(self) -> u16 {
-        match self {
-            Self::A => 1,
-            Self::NS => 2,
-            Self::MD => 3,
-            Self::MF => 4,
-            Self::CNAME => 5,
-            Self::SOA => 6,
-            Self::MB => 7,
-            Self::MG => 8,
-            Self::MR => 9,
-            Self::Null => 10,
-            Self::WKS => 11,
-            Self::PTR => 12,
-            Self::HINFO => 13,
-            Self::MINFO => 14,
-            Self::MX => 15,
-            Self::TXT => 16,
-            Self::AXFR => 252,
-            Self::MAILB => 253,
-            Self::MAILA => 254,
+impl From<QType> for u16 {
+    fn from(val: QType) -> Self {
+        match val {
+            QType::A => 1,
+            QType::NS => 2,
+            QType::MD => 3,
+            QType::MF => 4,
+            QType::CNAME => 5,
+            QType::SOA => 6,
+            QType::MB => 7,
+            QType::MG => 8,
+            QType::MR => 9,
+            QType::Null => 10,
+            QType::WKS => 11,
+            QType::PTR => 12,
+            QType::HINFO => 13,
+            QType::MINFO => 14,
+            QType::MX => 15,
+            QType::TXT => 16,
+            QType::AXFR => 252,
+            QType::MAILB => 253,
+            QType::MAILA => 254,
         }
     }
 }
@@ -184,14 +183,14 @@ impl TryFrom<u16> for QClass {
     }
 }
 
-impl Into<u16> for QClass {
-    fn into(self) -> u16 {
-        match self {
-            Self::IN => 1,
-            Self::CS => 2,
-            Self::CH => 3,
-            Self::HS => 4,
-            Self::Any => 255,
+impl From<QClass> for u16 {
+    fn from(val: QClass) -> Self {
+        match val {
+            QClass::IN => 1,
+            QClass::CS => 2,
+            QClass::CH => 3,
+            QClass::HS => 4,
+            QClass::Any => 255,
         }
     }
 }
