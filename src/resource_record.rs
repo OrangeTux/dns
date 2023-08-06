@@ -1,9 +1,9 @@
-use dns::DecodeError;
+use crate::DecodeError;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ResourceRecord {
     /// The domain name to which this record relates to.
-    pub name: String,
+    pub name: Vec<u8>,
 
     /// The type of ResourceRecord.
     pub r#type: Type,
@@ -22,9 +22,9 @@ pub struct ResourceRecord {
 }
 
 impl ResourceRecord {
-    fn into_bytes(self) -> Vec<u8> {
+    pub fn into_bytes(self) -> Vec<u8> {
         let mut output = vec![];
-        output.append(&mut self.name.into_bytes());
+        output.append(&mut self.name.clone());
         output.append(&mut self.r#type.into_bytes());
         output.append(&mut self.class.into_bytes());
         output.append(&mut Vec::from(self.ttl.to_be_bytes()));
@@ -32,6 +32,56 @@ impl ResourceRecord {
         output.append(&mut self.rdata.clone());
 
         output
+    }
+}
+
+impl TryFrom<&mut std::slice::Iter<'_, u8>> for ResourceRecord {
+    type Error = DecodeError;
+
+    fn try_from(value: &mut std::slice::Iter<'_, u8>) -> Result<Self, Self::Error> {
+        let mut name: Vec<u8> = Vec::with_capacity(1);
+        for _ in 0..1 {
+            name.push(*value.next().ok_or(DecodeError::NotEnoughBytes)?);
+        }
+
+        let r#type: Type = u16::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ])
+        .try_into()
+        .unwrap();
+        //let r#type = Type::NS;
+        let class: Class = u16::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ])
+        .try_into()
+        .unwrap();
+
+        let ttl = u32::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ]);
+        let rdlength = u16::from_be_bytes([
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+            *value.next().ok_or(DecodeError::NotEnoughBytes)?,
+        ]);
+
+        let mut rdata: Vec<u8> = Vec::with_capacity(rdlength.into());
+        for _ in 0..rdlength {
+            rdata.push(*value.next().ok_or(DecodeError::NotEnoughBytes)?);
+        }
+
+        Ok(ResourceRecord {
+            name,
+            r#type,
+            class,
+            ttl,
+            rdlength,
+            rdata,
+        })
     }
 }
 
@@ -80,7 +130,7 @@ impl TryFrom<u16> for Type {
             16 => Self::TXT,
             _ => {
                 return Err(format!(
-                    "failed to parse value as QType: {} is not a valid value",
+                    "failed to parse value as Type: {} is not a valid value",
                     value
                 ))
             }
@@ -146,7 +196,7 @@ impl TryFrom<u16> for Class {
             4 => Self::HS,
             _ => {
                 return Err(DecodeError::IllegalValue(format!(
-                    "failed to parse value as QClass: {} is not a valid value",
+                    "failed to parse value as Class: {} is not a valid value",
                     value
                 )))
             }

@@ -1,4 +1,5 @@
-use dns::DecodeError;
+//! Serialize and deserialize `Header`s.
+use crate::DecodeError;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Header {
@@ -31,16 +32,18 @@ impl TryFrom<&mut std::slice::Iter<'_, u8>> for Header {
             *value.next().ok_or(DecodeError::NotEnoughBytes)?,
             *value.next().ok_or(DecodeError::NotEnoughBytes)?,
         ]);
+
         let byte = *value.next().ok_or(DecodeError::NotEnoughBytes)?;
-        let qr = Type::try_from(byte & 0b1000_0000)?;
-        let opcode = OpCode::try_from(byte & 0b0111_1000)?;
-        let aa = byte & 0b1000_0000;
-        let tc = byte & 0b0000_0100;
-        let rd = byte & 0b0000_0010;
-        let ra = byte & 0b0000_0001;
+        let qr = Type::try_from((byte & 0b1000_0000) >> 7)?;
+        let opcode = OpCode::try_from((byte & 0b0111_1000) >> 3)?;
+        let aa = (byte & 0b0000_0100) >> 2;
+        let tc = (byte & 0b0000_0010) >> 1;
+        let rd = byte & 0b0000_0001;
+
         let byte = *value.next().ok_or(DecodeError::NotEnoughBytes)?;
-        let z = byte & 0b1110_0000;
-        let rcode = ResponseCode::try_from(byte & 0b0001_1111)?;
+        let ra = (byte & 0b1000_0000) >> 7;
+        let z = (byte & 0b0111_0000) >> 4;
+        let rcode = ResponseCode::try_from(byte & 0b0000_1111)?;
         let qd_count = u16::from_be_bytes([
             *value.next().ok_or(DecodeError::NotEnoughBytes)?,
             *value.next().ok_or(DecodeError::NotEnoughBytes)?,
@@ -78,6 +81,34 @@ impl TryFrom<&mut std::slice::Iter<'_, u8>> for Header {
     }
 }
 
+impl Header {
+    pub fn into_bytes(self) -> Vec<u8> {
+        let mut header = Vec::with_capacity(12);
+        header.append(&mut self.id.to_be_bytes().to_vec());
+
+        let mut byte: u8 = 0;
+        byte = byte + (Into::<u8>::into(self.qr) << 7);
+        byte = byte + (Into::<u8>::into(self.opcode) << 3);
+        byte = byte + (Into::<u8>::into(self.aa) << 2);
+        byte = byte + (Into::<u8>::into(self.tc) << 1);
+        byte = byte + (Into::<u8>::into(self.rd) << 0);
+        header.push(byte);
+
+        let mut byte: u8 = 0;
+        byte = byte + (Into::<u8>::into(self.ra) << 7);
+        byte = byte + (Into::<u8>::into(self.z) << 4);
+        byte = byte + (Into::<u8>::into(self.rcode) << 0);
+        header.push(byte);
+
+        header.append(&mut self.qd_count.to_be_bytes().to_vec());
+        header.append(&mut self.an_count.to_be_bytes().to_vec());
+        header.append(&mut self.ns_count.to_be_bytes().to_vec());
+        header.append(&mut self.ar_count.to_be_bytes().to_vec());
+
+        return header;
+    }
+}
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum OpCode {
     Query,
@@ -100,6 +131,15 @@ impl TryFrom<u8> for OpCode {
     }
 }
 
+impl Into<u8> for OpCode {
+    fn into(self) -> u8 {
+        match self {
+            Self::Query => 0,
+            Self::IQuery => 1,
+            Self::Status => 2,
+        }
+    }
+}
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Type {
     Query,
@@ -116,6 +156,15 @@ impl TryFrom<u8> for Type {
                 "failed to parse value as Type : {} is not a valid value",
                 value
             ))),
+        }
+    }
+}
+
+impl Into<u8> for Type {
+    fn into(self) -> u8 {
+        match self {
+            Self::Query => 0,
+            Self::Reply => 1,
         }
     }
 }
@@ -148,6 +197,19 @@ impl TryFrom<u8> for ResponseCode {
     }
 }
 
+impl Into<u8> for ResponseCode {
+    fn into(self) -> u8 {
+        match self {
+            Self::NoError => 0,
+            Self::FormatError => 1,
+            Self::ServerFailure => 2,
+            Self::NameError => 4,
+            Self::NotImplemented => 5,
+            Self::Refused => 6,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -169,8 +231,8 @@ mod test {
                 opcode: OpCode::Query,
                 aa: 0,
                 tc: 0,
-                rd: 0,
-                ra: 1,
+                rd: 1,
+                ra: 0,
                 z: 0,
                 rcode: ResponseCode::NoError,
                 qd_count: 1,
