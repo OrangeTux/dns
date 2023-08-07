@@ -13,9 +13,9 @@ fn main() -> std::io::Result<()> {
     let message = Message::try_from(&mut buf.iter()).unwrap();
     let mut response_header = message.header.clone();
     response_header.qr = MessageType::Reply;
-    response_header.aa = 1;
+    response_header.authoritive_answer = false;
     response_header.an_count = 1;
-    response_header.rcode = ResponseCode::NoError;
+    response_header.r_code = ResponseCode::NoError;
 
     let response = Message {
         header: response_header,

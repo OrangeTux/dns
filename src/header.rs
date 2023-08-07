@@ -1,26 +1,53 @@
 //! Serialize and deserialize `Header`s.
 use crate::DecodeError;
 
+/// Header of a DNS message.
+///
+/// The impementation is based on section [`4.1.1. Header section format`] of RFC 1035.
+///
+/// [`4.1.1. Header section format`]: https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Header {
     /// An identifier used to match query with reply.
     pub id: u16,
 
-    // Whether packet contains a query or a reply.
-    pub qr: Type,
+    /// Whether packet contains a query or a reply.
+    pub message_type: Type,
 
-    pub opcode: OpCode,
+    /// Field indicating the kind of query.
+    pub op_code: OpCode,
 
-    pub aa: u8,
-    pub tc: u8,
-    pub rd: u8,
-    pub ra: u8,
+    /// Indicate that the responding name server is authoritive for the domain name.
+    /// May only be `true` in responses.
+    pub authoritive_answer: bool,
+
+    /// Whether the message has been truncated or not.
+    pub truncated: bool,
+
+    /// Whether name server should recursively resolve the domain name.
+    pub recursion_desired: bool,
+
+    /// Whether  name server supports recursive queries.
+    /// May only be `true` in responses.
+    pub recursion_available: bool,
+
+    /// Reserved for future use. Must be 0.
     pub z: u8,
-    pub rcode: ResponseCode,
 
+    /// Response code.
+    /// May only be set in response.
+    pub r_code: ResponseCode,
+
+    /// Number of questions.
     pub qd_count: u16,
+
+    /// Number of answers resource records.
     pub an_count: u16,
+
+    /// Number of authority resource records.
     pub ns_count: u16,
+
+    /// Number of additional resource records.
     pub ar_count: u16,
 }
 
@@ -63,14 +90,14 @@ impl TryFrom<&mut std::slice::Iter<'_, u8>> for Header {
 
         let header = Header {
             id,
-            qr,
-            opcode,
-            aa,
-            tc,
-            rd,
-            ra,
+            message_type: qr,
+            op_code: opcode,
+            authoritive_answer: aa == 1,
+            truncated: tc == 1,
+            recursion_desired: rd == 1,
+            recursion_available: ra == 1,
             z,
-            rcode,
+            r_code: rcode,
             qd_count,
             an_count,
             ns_count,
@@ -87,17 +114,17 @@ impl Header {
         header.append(&mut self.id.to_be_bytes().to_vec());
 
         let mut byte: u8 = 0;
-        byte += Into::<u8>::into(self.qr) << 7;
-        byte += Into::<u8>::into(self.opcode) << 3;
-        byte += Into::<u8>::into(self.aa) << 2;
-        byte += Into::<u8>::into(self.tc) << 1;
-        byte += Into::<u8>::into(self.rd);
+        byte += Into::<u8>::into(self.message_type) << 7;
+        byte += Into::<u8>::into(self.op_code) << 3;
+        byte += Into::<u8>::into(self.authoritive_answer) << 2;
+        byte += Into::<u8>::into(self.truncated) << 1;
+        byte += Into::<u8>::into(self.recursion_desired);
         header.push(byte);
 
         let mut byte: u8 = 0;
-        byte += Into::<u8>::into(self.ra) << 7;
+        byte += Into::<u8>::into(self.recursion_available) << 7;
         byte += Into::<u8>::into(self.z) << 4;
-        byte += Into::<u8>::into(self.rcode);
+        byte += Into::<u8>::into(self.r_code);
         header.push(byte);
 
         header.append(&mut self.qd_count.to_be_bytes().to_vec());
@@ -227,14 +254,14 @@ mod test {
             header,
             Header {
                 id: 37064,
-                qr: Type::Query,
-                opcode: OpCode::Query,
-                aa: 0,
-                tc: 0,
-                rd: 1,
-                ra: 0,
+                message_type: Type::Query,
+                op_code: OpCode::Query,
+                authoritive_answer: false,
+                truncated: false,
+                recursion_desired: true,
+                recursion_available: false,
                 z: 0,
-                rcode: ResponseCode::NoError,
+                r_code: ResponseCode::NoError,
                 qd_count: 1,
                 an_count: 0,
                 ns_count: 0,
