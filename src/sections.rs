@@ -1,4 +1,7 @@
+use crate::domain_name::{into_string, take_name};
 use crate::DecodeError;
+use std::iter::Peekable;
+use std::slice::Iter;
 
 /// See 4.1.2 of rfc
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -8,31 +11,11 @@ pub struct Question {
     pub qclass: QClass,
 }
 
-impl TryFrom<&mut std::slice::Iter<'_, u8>> for Question {
+impl TryFrom<&mut Peekable<Iter<'_, u8>>> for Question {
     type Error = DecodeError;
 
-    fn try_from(value: &mut std::slice::Iter<u8>) -> Result<Self, Self::Error> {
-        let mut qname: String = String::new();
-        loop {
-            let length_of_label: usize = (*value.next().ok_or(DecodeError::NotEnoughBytes)?).into();
-            if length_of_label == 0 {
-                break;
-            }
-            if !qname.is_empty() {
-                qname.push('.');
-            }
-            let mut label: Vec<u8> = vec![];
-
-            for _ in 0..length_of_label {
-                let char = *value.next().ok_or(DecodeError::NotEnoughBytes)?;
-                label.push(char);
-            }
-            qname.push_str(std::str::from_utf8(&label).map_err(|_| {
-                DecodeError::IllegalValue(
-                    "failed to parse value as qname: value not valid UTF-8".into(),
-                )
-            })?);
-        }
+    fn try_from(value: &mut Peekable<Iter<u8>>) -> Result<Self, Self::Error> {
+        let qname = into_string(take_name(value)?)?;
 
         Ok(Question {
             qname,

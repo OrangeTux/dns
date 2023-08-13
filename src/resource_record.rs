@@ -1,4 +1,6 @@
 use crate::DecodeError;
+use std::iter::Peekable;
+use std::slice::Iter;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ResourceRecord {
@@ -35,10 +37,10 @@ impl ResourceRecord {
     }
 }
 
-impl TryFrom<&mut std::slice::Iter<'_, u8>> for ResourceRecord {
+impl TryFrom<&mut Peekable<Iter<'_, u8>>> for ResourceRecord {
     type Error = DecodeError;
 
-    fn try_from(value: &mut std::slice::Iter<'_, u8>) -> Result<Self, Self::Error> {
+    fn try_from(value: &mut Peekable<Iter<'_, u8>>) -> Result<Self, Self::Error> {
         let mut name: Vec<u8> = Vec::with_capacity(1);
         for _ in 0..1 {
             name.push(*value.next().ok_or(DecodeError::NotEnoughBytes)?);

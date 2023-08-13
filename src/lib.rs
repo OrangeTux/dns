@@ -6,6 +6,7 @@
 //!
 //! [`RFC 1035`]: https://datatracker.ietf.org/doc/html/rfc1035
 #![warn(missing_docs)]
+mod domain_name;
 pub mod header;
 pub mod message;
 pub mod resource_record;

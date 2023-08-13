@@ -3,6 +3,8 @@ use crate::header::Header;
 use crate::resource_record::ResourceRecord;
 use crate::sections::Question;
 use crate::DecodeError;
+use std::iter::Peekable;
+use std::slice::Iter;
 
 /// `Message` models a DNS message as documented in [`4. Messages`] of RFC 1035.
 /// Any message, whether it's a query or a reply, follows the same format.
@@ -16,7 +18,7 @@ use crate::DecodeError;
 /// // `dig orangetux.nl +noedns`.
 /// let buf = vec![244, 238, 1, 32, 0, 1, 0, 0, 0, 0, 0, 0, 9, 111, 114, 97, 110, 103, 101, 116, 117, 120, 2, 110, 108, 0, 0, 1, 0, 1];
 ///
-/// let message: Message = Message::try_from(&mut buf.iter()).unwrap();
+/// let message: Message = Message::try_from(&mut buf.iter().peekable()).unwrap();
 /// assert_eq!("orangetux.nl".to_string(), message.questions[0].qname);
 /// assert_eq!(buf, message.into_bytes());
 ///
@@ -40,10 +42,10 @@ pub struct Message {
     pub additional: Vec<ResourceRecord>,
 }
 
-impl TryFrom<&mut std::slice::Iter<'_, u8>> for Message {
+impl TryFrom<&mut Peekable<Iter<'_, u8>>> for Message {
     type Error = DecodeError;
 
-    fn try_from(value: &mut std::slice::Iter<u8>) -> Result<Self, Self::Error> {
+    fn try_from(value: &mut Peekable<Iter<u8>>) -> Result<Self, Self::Error> {
         let header = Header::try_from(&mut *value)?;
         let mut questions = Vec::with_capacity(header.qd_count.into());
         let mut answers = Vec::with_capacity(header.an_count.into());
@@ -122,7 +124,7 @@ mod test {
         let message = Message {
             header: Header {
                 id: 1337,
-                qr: Type::Query,
+                message_type: Type::Query,
                 op_code: OpCode::Query,
                 authoritive_answer: false,
                 truncated: false,
@@ -149,7 +151,7 @@ mod test {
         let bytes = message.clone().into_bytes();
 
         // ...than deseralize the bytes back to a `Message`.
-        let copy_of_message = Message::try_from(&mut bytes.iter()).unwrap();
+        let copy_of_message = Message::try_from(&mut bytes.iter().peekable()).unwrap();
 
         assert_eq!(message, copy_of_message);
     }

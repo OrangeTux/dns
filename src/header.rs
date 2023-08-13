@@ -1,5 +1,7 @@
 //! Serialize and deserialize `Header`s.
 use crate::DecodeError;
+use std::iter::Peekable;
+use std::slice::Iter;
 
 /// Header of a DNS message.
 ///
@@ -51,10 +53,10 @@ pub struct Header {
     pub ar_count: u16,
 }
 
-impl TryFrom<&mut std::slice::Iter<'_, u8>> for Header {
+impl TryFrom<&mut Peekable<Iter<'_, u8>>> for Header {
     type Error = DecodeError;
 
-    fn try_from(value: &mut std::slice::Iter<u8>) -> Result<Self, Self::Error> {
+    fn try_from(value: &mut Peekable<Iter<u8>>) -> Result<Self, Self::Error> {
         let id = u16::from_be_bytes([
             *value.next().ok_or(DecodeError::NotEnoughBytes)?,
             *value.next().ok_or(DecodeError::NotEnoughBytes)?,
@@ -247,7 +249,8 @@ mod test {
             144, 200, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 10, 100, 117, 99, 107, 100, 117, 99, 107, 103,
             111, 3, 99, 111, 109, 0, 0, 1, 0, 1,
         ]
-        .iter();
+        .iter()
+        .peekable();
         let header = Header::try_from(&mut query).unwrap();
 
         assert_eq!(
