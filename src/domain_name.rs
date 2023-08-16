@@ -12,11 +12,10 @@
 // * 3.1. Name space definitions
 // * 4.1.4. Message compression
 use crate::DecodeError;
-use core::fmt;
 use std::iter::Peekable;
 use std::slice::Iter;
 
-pub struct Name(Vec<u8>);
+pub struct Name(pub Vec<u8>);
 
 pub(crate) fn into_string(name: Name) -> Result<String, DecodeError> {
     if is_pointer(name.0[0]) || is_pointer(name.0[name.0.len() - 1]) {

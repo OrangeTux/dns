@@ -1,3 +1,4 @@
+use crate::domain_name::{into_string, take_name};
 use crate::DecodeError;
 use std::iter::Peekable;
 use std::slice::Iter;
@@ -41,10 +42,7 @@ impl TryFrom<&mut Peekable<Iter<'_, u8>>> for ResourceRecord {
     type Error = DecodeError;
 
     fn try_from(value: &mut Peekable<Iter<'_, u8>>) -> Result<Self, Self::Error> {
-        let mut name: Vec<u8> = Vec::with_capacity(1);
-        for _ in 0..1 {
-            name.push(*value.next().ok_or(DecodeError::NotEnoughBytes)?);
-        }
+        let name = take_name(value)?.0;
 
         let r#type: Type = u16::from_be_bytes([
             *value.next().ok_or(DecodeError::NotEnoughBytes)?,
