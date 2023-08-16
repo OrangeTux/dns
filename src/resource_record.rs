@@ -107,6 +107,8 @@ pub enum Type {
     MINFO,
     MX,
     TXT,
+    /// IPv6 host address as defined in RFC 3596 DNS Extensions to Support IP Version 6.
+    AAAA,
 }
 
 impl TryFrom<u16> for Type {
@@ -130,6 +132,7 @@ impl TryFrom<u16> for Type {
             14 => Self::MINFO,
             15 => Self::MX,
             16 => Self::TXT,
+            28 => Self::AAAA,
             _ => {
                 return Err(format!(
                     "failed to parse value as Type: {} is not a valid value",
@@ -159,6 +162,7 @@ impl Type {
             Self::MINFO => 14,
             Self::MX => 15,
             Self::TXT => 16,
+            Self::AAAA => 28,
         };
         vec![0, low_byte]
     }
